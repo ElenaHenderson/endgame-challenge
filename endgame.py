@@ -24,84 +24,92 @@
 #
 # For example, given this sample, the minimum total energy needed to fly all 24 miles is 352 energy units,
 # and the optimal sequence of jet streams is [(0,5), (6,11), (14,17), (19,24)].
-
 import sys
 
 
-class Vertex():
+class Marker():
     def __init__(self, id):
         self.id = id
-        self.successors = {}
+        self.destinations = {}
 
-    def add_outgoing_edge(self, id, weight):
-        self.successors[id] = weight
+    def get_destinations(self):
+        return self.destinations.keys()
+
+    def add_destination(self, id, energy, isJetStream):
+        self.destinations[id] = {'energy': energy, 'isJetStream': isJetStream}
 
 
-class Graph():
+class GraphOfFlightPaths():
     def __init__(self):
-        self.vertices = {}
-        self.lastVertex = 0
-        self.defaultEdgeWeight = None
+        self.markers = {}
+        self.lastMarker = 0
+        self.energyPerMileWithoutJetStream = None
+        
+    def get_markers(self):
+        return self.markers.keys()
 
-    def add_edge(self, start, end, weight):
-        if start not in self.vertices.keys():
-            startVertex = Vertex(id=start)
-            self.vertices[start] = startVertex
+    def add_flight_path(self, start, end, energy, isJetStream):
+        if start not in self.get_markers():
+            startMarker = Marker(id=start)
+            self.markers[start] = startMarker
         else:
-            startVertex = self.vertices[start]
+            startMarker = self.markers[start]
 
-        if end not in self.vertices.keys():
-            endVertex = Vertex(id=end)
-            self.vertices[end] = endVertex
+        if end not in self.get_markers():
+            endMarker = Marker(id=end)
+            self.markers[end] = endMarker
 
-        startVertex.add_outgoing_edge(end, weight)
+        startMarker.add_destination(end, energy, isJetStream)
 
     def build_graph_from_file(self, file):
         with open(file, 'r') as f:
-            self.defaultEdgeWeight = int(f.readline())
+            self.energyPerMileWithoutJetStream = int(f.readline())
 
             for line in f.readlines():
-                start, end, weight = [int(item) for item in line.split(' ')]
+                start, end, energy = [int(item) for item in line.split(' ')]
 
-                if weight/(end-start) < self.defaultEdgeWeight:
-                    if (start not in self.vertices.keys() and end not in self.vertices.keys()) or \
-                        (start in self.vertices.keys() and end in self.vertices[start].successors.keys() and
-                        self.vertices[start].successors[end] > weight):
-                        self.add_edge(start, end, weight)
+                if energy/(end-start) < self.energyPerMileWithoutJetStream and end > start:
+                    if (start not in self.get_markers()) or \
+                        (start in self.get_markers() and end not in self.markers[start].get_destinations()) or \
+                        (start in self.get_markers() and end in self.markers[start].get_destinations() and
+                        self.markers[start].destinations[end]['energy'] > energy):
+                        self.add_flight_path(start, end, energy, isJetStream=True)
 
-                if end > self.lastVertex:
-                    self.lastVertex = end
+                if end > self.lastMarker:
+                    self.lastMarker = end
 
-        # add missing default vertices and edges
-        for i in range(0, self.lastVertex, 1):
-            if i in self.vertices.keys() and (i + 1) not in self.vertices[i].successors.keys():
-                self.add_edge(i, i + 1, self.defaultEdgeWeight)
+        # make sure that flight paths exist between each mile marker
+        for i in range(0, self.lastMarker, 1):
+            if i in self.get_markers() and (i + 1) not in self.markers[i].get_destinations():
+                self.add_flight_path(i, i + 1, self.energyPerMileWithoutJetStream, isJetStream=False)
 
-    def find_optimal_path(self):
-        shortest = [sys.maxsize] * (self.lastVertex + 1)
-        pred = [None] * (self.lastVertex + 1)
-        shortest[0] = 0
-        for vertexId in range(0, self.lastVertex + 1, 1):
-            for adjacentVertexId in self.vertices[vertexId].successors.keys():
-                if shortest[vertexId] + self.vertices[vertexId].successors[adjacentVertexId] < shortest[adjacentVertexId]:
-                    shortest[adjacentVertexId] = shortest[vertexId] + self.vertices[vertexId].successors[adjacentVertexId]
-                    pred[adjacentVertexId] = vertexId
+    def get_minimum_total_energy_and_optimal_sequence_of_jet_streams(self):
+        minimumEnergyToMarker = [sys.maxsize] * (self.lastMarker + 1)
+        predMarker = [None] * (self.lastMarker + 1)
+        minimumEnergyToMarker[0] = 0
+        for markerId in range(0, self.lastMarker + 1, 1):
+            for adjacentMarkerId in self.markers[markerId].get_destinations():
+                if minimumEnergyToMarker[markerId] + self.markers[markerId].destinations[adjacentMarkerId]['energy'] < minimumEnergyToMarker[adjacentMarkerId]:
+                    minimumEnergyToMarker[adjacentMarkerId] = minimumEnergyToMarker[markerId] + self.markers[markerId].destinations[adjacentMarkerId]['energy']
+                    predMarker[adjacentMarkerId] = markerId
 
-        destination = self.lastVertex
-        optimalPathReversed = []
-        totalWeight = 0
+        destination = self.lastMarker
+        optimalSequenceOfJetStreams = []
+        minimumTotalEnergy = 0
         while destination > 0:
-            optimalPathReversed.append((pred[destination], destination))
-            totalWeight = totalWeight + self.vertices[pred[destination]].successors[destination]
-            destination = pred[destination]
+            if self.markers[predMarker[destination]].destinations[destination]['isJetStream']:
+                optimalSequenceOfJetStreams.append((predMarker[destination], destination))
+            minimumTotalEnergy = minimumTotalEnergy + self.markers[predMarker[destination]].destinations[destination]['energy']
+            destination = predMarker[destination]
 
-        print 'totalWeight',
-        print totalWeight
-        optimalPathReversed.reverse()
-        for route in optimalPathReversed:
-            print route
+        optimalSequenceOfJetStreams.reverse()
+        return minimumTotalEnergy, optimalSequenceOfJetStreams
 
-
-graph = Graph()
-graph.build_graph_from_file('sample_paths.txt')
-graph.find_optimal_path()
+if __name__ == "__main__":
+    graph = GraphOfFlightPaths()
+    graph.build_graph_from_file('sample_paths.txt')
+    energy, jetStreams = graph.get_minimum_total_energy_and_optimal_sequence_of_jet_streams()
+    print "the minimum total energy needed to fly all {lastMarker} miles is {energy} energy units "\
+          "and the optimal sequence of jet streams is {jetStreams}".format(lastMarker=graph.lastMarker,
+                                                                           energy=energy,
+                                                                           jetStreams=jetStreams)
