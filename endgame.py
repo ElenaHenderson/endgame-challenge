@@ -78,16 +78,31 @@ class GraphOfFlightPaths():
                 if end > self.lastMarker:
                     self.lastMarker = end
 
-        # make sure that flight paths exist between each mile marker
-        for i in range(0, self.lastMarker, 1):
-            if i in self.get_markers() and (i + 1) not in self.markers[i].get_destinations():
-                self.add_flight_path(i, i + 1, self.energyPerMileWithoutJetStream, isJetStream=False)
+        self.fill_gaps_in_path()
+
+    def fill_gaps_in_path(self):
+        markerIds = self.get_markers()
+        markerIds.sort()
+        if 0 not in markerIds:
+            start = 0
+            end = min(markerIds)
+            energy = self.energyPerMileWithoutJetStream * (end - start)
+            self.add_flight_path(start, end, energy, isJetStream=False)
+
+        for i in range(1, len(markerIds)-1):
+            if markerIds[i+1] not in self.markers[markerIds[i]].get_destinations():
+                energy = self.energyPerMileWithoutJetStream * (markerIds[i+1] - markerIds[i])
+                self.add_flight_path(markerIds[i], markerIds[i+1], energy, isJetStream=False)
 
     def get_minimum_total_energy_and_optimal_sequence_of_jet_streams(self):
         minimumEnergyToMarker = [sys.maxsize] * (self.lastMarker + 1)
         predMarker = [None] * (self.lastMarker + 1)
         minimumEnergyToMarker[0] = 0
-        for markerId in range(0, self.lastMarker + 1, 1):
+
+        markerIds = self.get_markers()
+        markerIds.sort()
+
+        for markerId in markerIds:
             for adjacentMarkerId in self.markers[markerId].get_destinations():
                 if minimumEnergyToMarker[markerId] + self.markers[markerId].destinations[adjacentMarkerId]['energy'] < minimumEnergyToMarker[adjacentMarkerId]:
                     minimumEnergyToMarker[adjacentMarkerId] = minimumEnergyToMarker[markerId] + self.markers[markerId].destinations[adjacentMarkerId]['energy']
@@ -106,10 +121,14 @@ class GraphOfFlightPaths():
         return minimumTotalEnergy, optimalSequenceOfJetStreams
 
 if __name__ == "__main__":
-    graph = GraphOfFlightPaths()
-    graph.build_graph_from_file('sample_paths.txt')
-    energy, jetStreams = graph.get_minimum_total_energy_and_optimal_sequence_of_jet_streams()
-    print "the minimum total energy needed to fly all {lastMarker} miles is {energy} energy units "\
-          "and the optimal sequence of jet streams is {jetStreams}".format(lastMarker=graph.lastMarker,
-                                                                           energy=energy,
-                                                                           jetStreams=jetStreams)
+    inputFiles = ['sample_paths.txt', 'flight_paths.txt']
+
+    for file in inputFiles:
+        graph = GraphOfFlightPaths()
+        print "Input {file}".format(file=file)
+        graph.build_graph_from_file(file)
+        energy, jetStreams = graph.get_minimum_total_energy_and_optimal_sequence_of_jet_streams()
+        print "the minimum total energy needed to fly all {lastMarker} miles is {energy} energy units "\
+              "and the optimal sequence of jet streams is {jetStreams}".format(lastMarker=graph.lastMarker,
+                                                                               energy=energy,
+                                                                               jetStreams=jetStreams)
