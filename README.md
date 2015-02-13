@@ -3,7 +3,7 @@ Coconut Delivery Solution
 
 The solution to Coconut Delivery problem uses Dijkstra algorithm to find
 the jet-streams with least energy consumption in a topologically sorted graph
-with jet-stream and non-jet-stream edges an mile markers as vertices.
+with jet-stream and non-jet-stream edges and mile markers as vertices.
 
 The trick for making it efficient was in how the graph is built:
 
