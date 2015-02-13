@@ -1,3 +1,4 @@
+#!/usr/bin/env python2.7
 # Feb 7 2015
 # Coconut Delivery
 #
@@ -81,6 +82,7 @@ class GraphOfFlightPaths():
         self.fill_gaps_in_path()
 
     def fill_gaps_in_path(self):
+        # Add non-jet-stream edges between unconnected jet-stream edges
         markerIds = self.get_markers()
         markerIds.sort()
         if 0 not in markerIds:
@@ -95,6 +97,7 @@ class GraphOfFlightPaths():
                 self.add_flight_path(markerIds[i], markerIds[i+1], energy, isJetStream=False)
 
     def get_minimum_total_energy_and_optimal_sequence_of_jet_streams(self):
+        # Dijkstra algorithm to calculate the shortest path using a topologically sorted graph
         minimumEnergyToMarker = [sys.maxsize] * (self.lastMarker + 1)
         predMarker = [None] * (self.lastMarker + 1)
         minimumEnergyToMarker[0] = 0
