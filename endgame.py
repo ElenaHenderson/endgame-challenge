@@ -97,7 +97,7 @@ class GraphOfFlightPaths():
                 self.add_flight_path(markerIds[i], markerIds[i+1], energy, isJetStream=False)
 
     def get_minimum_total_energy_and_optimal_sequence_of_jet_streams(self):
-        # Dijkstra algorithm to calculate the shortest path using a topologically sorted graph
+        # DAG Shortest Path algorithm to calculate the shortest path using a topologically sorted graph
         minimumEnergyToMarker = [sys.maxsize] * (self.lastMarker + 1)
         predMarker = [None] * (self.lastMarker + 1)
         minimumEnergyToMarker[0] = 0

@@ -1,7 +1,7 @@
 Coconut Delivery Solution
 =========================
 
-The solution to Coconut Delivery problem uses Dijkstra algorithm to find
+The solution to Coconut Delivery problem uses DAG Shortest Path algorithm to find
 the jet-streams with least energy consumption in a topologically sorted graph
 with jet-stream and non-jet-stream edges and mile markers as vertices.
 
